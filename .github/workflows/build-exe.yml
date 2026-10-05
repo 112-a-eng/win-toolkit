@@ -1,4 +1,9 @@
-name: 构建 EXE
+name: Build EXE
+
+# 注意：所有 run: 内联脚本刻意只用 ASCII 字符（文件名用通配符获取，不写中文字面量）。
+# 原因：GitHub Actions 把内联脚本写成无 BOM 的临时 .ps1，Windows PowerShell 5.1 会按系统
+#      ANSI 代码页读取它，内联中文会变乱码并报 TerminatorExpectedAtEndOfString。
+#      仓库里的正式脚本（build-exe.ps1 等）都带 UTF-8 BOM，不受此影响。
 
 on:
   push:
@@ -13,42 +18,54 @@ permissions:
 
 jobs:
   build-exe:
-    name: 编译单文件 EXE
+    name: Build single-file EXE
     runs-on: windows-latest
 
     steps:
-      - name: 检出代码
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 环境自检（编码 / 编译器）
+      - name: Environment self-check
         shell: powershell
         run: |
-          Write-Host "=== PowerShell 版本 ==="
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          Write-Host "=== PowerShell ==="
           $PSVersionTable.PSVersion.ToString()
           Write-Host "=== csc.exe ==="
           $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-          if (Test-Path $csc) { Write-Host "找到: $csc" } else { Write-Host "找不到 csc.exe（构建脚本会自动查找备用路径）" }
-          Write-Host "=== 文件编码抽查（应为 UTF-8 BOM）==="
-          foreach ($f in '图形工具台.ps1', 'scripts\01-系统信息.ps1') {
-            $b = [System.IO.File]::ReadAllBytes((Join-Path $PWD $f))
-            $bom = ($b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
-            Write-Host ("  {0,-26} BOM={1}  大小={2}" -f $f, $bom, $b.Length)
+          Write-Host ("present: " + (Test-Path $csc))
+          Write-Host "=== repository files ==="
+          Get-ChildItem -Recurse -File | Where-Object { $_.Extension -in '.ps1', '.bat', '.exe', '.cs', '.ico' } |
+            Sort-Object FullName | ForEach-Object {
+              Write-Host ("  {0,10} bytes  {1}" -f $_.Length, $_.FullName.Substring($PWD.Path.Length + 1))
+            }
+          Write-Host "=== UTF-8 BOM check on every .ps1 ==="
+          $bad = 0
+          $total = 0
+          foreach ($f in (Get-ChildItem -Recurse -File -Filter *.ps1)) {
+            $total++
+            $b = [System.IO.File]::ReadAllBytes($f.FullName)
+            $bom = ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+            if (-not $bom) { $bad++; Write-Host ("  MISSING BOM -> " + $f.Name) }
           }
+          Write-Host ("ps1 total: $total , without BOM: $bad")
+          if ($bad -gt 0) { throw "some .ps1 files lost their UTF-8 BOM" }
 
-      - name: 编译 EXE
+      - name: Build EXE
         shell: powershell
         run: ./build/build-exe.ps1
 
-      - name: 生成 ASCII 文件名副本与校验和
+      - name: Make ASCII-named copy and checksum
         shell: powershell
         run: |
-          Copy-Item 'Windows常用指令集.exe' 'win-toolkit.exe' -Force
+          $exe = Get-ChildItem -File -Filter *.exe | Select-Object -First 1
+          Write-Host ("built: " + $exe.Name + "  " + $exe.Length + " bytes")
+          Copy-Item $exe.FullName 'win-toolkit.exe' -Force
           $hash = (Get-FileHash 'win-toolkit.exe' -Algorithm SHA256).Hash
           "$hash  win-toolkit.exe" | Set-Content -Path 'SHA256SUMS.txt' -Encoding ascii
-          Write-Host "SHA256: $hash"
-          Write-Host "大小: $((Get-Item 'win-toolkit.exe').Length) 字节"
+          Write-Host ("SHA256: " + $hash)
 
-      - name: 上传构建产物
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-toolkit-exe
@@ -56,7 +73,7 @@ jobs:
             win-toolkit.exe
             SHA256SUMS.txt
 
-      - name: 发布 Release（仅推送 tag 时）
+      - name: Publish release (tags only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
@@ -65,11 +82,11 @@ jobs:
             SHA256SUMS.txt
           generate_release_notes: true
           body: |
-            ## Windows 常用指令集 ${{ github.ref_name }}
+            ## Windows Command Toolkit ${{ github.ref_name }}
 
-            单文件绿色版：下载 `win-toolkit.exe` 双击即可，无需安装、无需改执行策略。
+            Portable single-file build - download `win-toolkit.exe` and double-click. No installer, no execution-policy change needed.
 
-            - 内嵌全部脚本与图标，单独放在任何目录都能跑
-            - 和 `图形工具台.ps1` / `scripts\` 放在同一目录时，会直接使用旁边的脚本
-            - 校验下载完整性：`SHA256SUMS.txt`
-            - 也支持 winget：`winget install 112-a-eng.WinToolkit`
+            - All scripts and the icon are embedded; it runs from any folder
+            - Placed next to `scripts/`, it uses those local scripts instead
+            - Verify your download with `SHA256SUMS.txt`
+            - Also installable via winget: `winget install 112-a-eng.WinToolkit`

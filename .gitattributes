@@ -1,0 +1,13 @@
+# 统一按 CRLF 存储：本项目是 Windows 专用工具（bat/ps1），下载 ZIP 后必须能直接双击运行
+* text=auto
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.md   text eol=crlf
+*.cs   text eol=crlf
+*.json text eol=crlf
+
+# 二进制文件不做任何转换
+*.exe binary
+*.ico binary
+*.png binary

@@ -1,0 +1,75 @@
+name: 构建 EXE
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-exe:
+    name: 编译单文件 EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 环境自检（编码 / 编译器）
+        shell: powershell
+        run: |
+          Write-Host "=== PowerShell 版本 ==="
+          $PSVersionTable.PSVersion.ToString()
+          Write-Host "=== csc.exe ==="
+          $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          if (Test-Path $csc) { Write-Host "找到: $csc" } else { Write-Host "找不到 csc.exe（构建脚本会自动查找备用路径）" }
+          Write-Host "=== 文件编码抽查（应为 UTF-8 BOM）==="
+          foreach ($f in '图形工具台.ps1', 'scripts\01-系统信息.ps1') {
+            $b = [System.IO.File]::ReadAllBytes((Join-Path $PWD $f))
+            $bom = ($b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+            Write-Host ("  {0,-26} BOM={1}  大小={2}" -f $f, $bom, $b.Length)
+          }
+
+      - name: 编译 EXE
+        shell: powershell
+        run: ./build/build-exe.ps1
+
+      - name: 生成 ASCII 文件名副本与校验和
+        shell: powershell
+        run: |
+          Copy-Item 'Windows常用指令集.exe' 'win-toolkit.exe' -Force
+          $hash = (Get-FileHash 'win-toolkit.exe' -Algorithm SHA256).Hash
+          "$hash  win-toolkit.exe" | Set-Content -Path 'SHA256SUMS.txt' -Encoding ascii
+          Write-Host "SHA256: $hash"
+          Write-Host "大小: $((Get-Item 'win-toolkit.exe').Length) 字节"
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-toolkit-exe
+          path: |
+            win-toolkit.exe
+            SHA256SUMS.txt
+
+      - name: 发布 Release（仅推送 tag 时）
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            win-toolkit.exe
+            SHA256SUMS.txt
+          generate_release_notes: true
+          body: |
+            ## Windows 常用指令集 ${{ github.ref_name }}
+
+            单文件绿色版：下载 `win-toolkit.exe` 双击即可，无需安装、无需改执行策略。
+
+            - 内嵌全部脚本与图标，单独放在任何目录都能跑
+            - 和 `图形工具台.ps1` / `scripts\` 放在同一目录时，会直接使用旁边的脚本
+            - 校验下载完整性：`SHA256SUMS.txt`
+            - 也支持 winget：`winget install 112-a-eng.WinToolkit`

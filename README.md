@@ -1,8 +1,29 @@
-﻿# Windows 常用指令集速查手册
+﻿# Windows 常用指令集
+
+[![构建 EXE](https://github.com/112-a-eng/win-toolkit/actions/workflows/build-exe.yml/badge.svg)](https://github.com/112-a-eng/win-toolkit/actions/workflows/build-exe.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4.svg)](#)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%20%7C%207-5391FE.svg)](#)
 
 > 适用：Windows 10 / 11 / Server 2016+（Windows PowerShell 5.1 与 PowerShell 7 均可）
 > 约定：`C:\>` 表示 CMD（命令提示符）；`PS>` 表示 PowerShell；未标注的表示两者通用。
-> 配套脚本：见本目录 `scripts\`，双击 `scripts\run.bat` 或运行 `scripts\menu.ps1` 打开菜单。
+> 配套脚本：见 `scripts\` 目录，双击 `scripts\run.bat` 或运行 `scripts\menu.ps1` 打开控制台菜单。
+
+![图形工具台](docs/screenshot.png)
+
+## 快速开始
+
+| 方式 | 做法 | 适合 |
+| --- | --- | --- |
+| **图形版（推荐）** | 到 [Releases](https://github.com/112-a-eng/win-toolkit/releases/latest) 下载 `win-toolkit.exe`，双击即用 | 不想敲命令 |
+| **winget 安装** | `winget install 112-a-eng.WinToolkit` | 喜欢包管理 |
+| **源码运行** | `git clone` 后双击 `启动图形工具台.bat`，或运行 `scripts\run.bat` | 想改脚本 |
+
+> winget 清单与提交说明见 `docs/winget.md`。
+
+> EXE 只是「启动器 + 资源包」，脚本始终是磁盘上的明文 `.ps1`，随时可看可改：
+> - 单独放在任何地方 → 自动解包到 `%LOCALAPPDATA%\WinCommandToolkit\app` 再启动
+> - 和脚本放在同一目录 → 直接使用旁边那份脚本，改完重开就生效，不必重新打包
 
 ---
 

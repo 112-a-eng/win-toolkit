@@ -1,0 +1,8 @@
+# 打包中间产物（build-exe.ps1 会自动重建）
+build/payload/
+
+# 日志与临时文件
+*.log
+~$*
+Thumbs.db
+desktop.ini

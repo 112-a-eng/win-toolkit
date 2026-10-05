@@ -23,6 +23,11 @@ $items = @(
     [pscustomobject]@{ Key = '6'; Name = '进程服务速查';     File = '06-进程服务速查.ps1';  Hint = '卡顿排查：Top 进程与异常服务' }
     [pscustomobject]@{ Key = '7'; Name = '大文件查找';       File = '07-大文件查找.ps1';    Hint = '找出占用空间的大文件' }
     [pscustomobject]@{ Key = '8'; Name = '批量重命名';       File = '08-批量重命名.ps1';    Hint = '预览为先，-Apply 才执行' }
+    [pscustomobject]@{ Key = '9';  Name = '文件哈希校验'; File = '09-文件哈希.ps1';  Hint = '算/验 MD5/SHA1/SHA256/SHA512' }
+    [pscustomobject]@{ Key = '10'; Name = '局域网扫描';   File = '10-局域网扫描.ps1'; Hint = '并发 ping 扫网段 + ARP 表' }
+    [pscustomobject]@{ Key = '11'; Name = '服务管理';     File = '11-服务管理.ps1';   Hint = '查询 / 筛选 / 启停服务' }
+    [pscustomobject]@{ Key = '12'; Name = '环境变量';     File = '12-环境变量.ps1';   Hint = '查看 / 修改用户级与系统级变量' }
+    [pscustomobject]@{ Key = '13'; Name = '系统修复';     File = '13-系统修复.ps1';   Hint = 'SFC / DISM / DNS / 网络 / 缓存' }
 )
 
 # 非交互环境（-NonInteractive / 管道调用）下 Read-Host 会报错，这里统一兜底，避免菜单死循环
@@ -102,6 +107,30 @@ function Invoke-Tool([object]$Item) {
             if ($f) { $params.Filter = $f }
             if ($pre) { $params.Prefix = $pre }
             & $file @params
+        }
+        '9' {
+            $t = Read-Input ' 要计算哈希的文件或目录'
+            if ($t) { & $file -Path $t } else { Write-Host ' 未填写，已取消。' -ForegroundColor Yellow }
+        }
+        '10' {
+            $sub = Read-Input ' 网段（回车=自动识别本机 /24）'
+            if ($sub) { & $file -Subnet $sub } else { & $file }
+        }
+        '11' {
+            $kw = Read-Input ' 服务名/显示名关键字（回车=全部）'
+            $st = Read-Input ' 状态 All/Running/Stopped（回车=All）'
+            $pa = @{}
+            if ($kw) { $pa.Filter = $kw }
+            if ($st) { $pa.State = $st }
+            & $file @pa
+        }
+        '12' {
+            $sc = Read-Input ' 范围 All/User/Machine（回车=All）'
+            if ($sc) { & $file -Scope $sc } else { & $file }
+        }
+        '13' {
+            & $file -List
+            Write-Host ' 提示：要执行具体修复，直接在命令行运行，例如 .\scripts\13-系统修复.ps1 -FlushDns -Yes' -ForegroundColor DarkGray
         }
         default {
             & $file

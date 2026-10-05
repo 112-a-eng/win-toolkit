@@ -14,7 +14,10 @@
 #>
 [CmdletBinding()]
 param(
-    [switch]$SelfTest
+    [switch]$SelfTest,
+    # 界面缩放：默认 1.3（比原来的 9pt 明显大一圈）。
+    # 还想更大就传 1.5，想还原成最初大小就传 1.0。布局结构不变，只是整体等比放大。
+    [ValidateRange(0.8, 2.5)][double]$UiScale = 1.3
 )
 
 $ErrorActionPreference = 'Continue'
@@ -44,10 +47,15 @@ $script:ReadmePath = Join-Path $PSScriptRoot 'README.md'
 # ============================================================
 # 1. 配色与工具函数
 # ============================================================
-$script:UiFont   = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-$script:UiFontB  = New-Object System.Drawing.Font('Microsoft YaHei UI', 9, [System.Drawing.FontStyle]::Bold)
-$script:TitleFont = New-Object System.Drawing.Font('Microsoft YaHei UI', 12, [System.Drawing.FontStyle]::Bold)
-$script:MonoFont = New-Object System.Drawing.Font('Consolas', 10)
+# 界面缩放：像素过 S()，字号过 FS()。布局结构保持不变，只是整体等比放大。
+$script:Scale = $UiScale
+function S([double]$v)  { return [int][Math]::Round($v * $script:Scale) }
+function FS([double]$v) { return [single]($v * $script:Scale) }
+
+$script:UiFont   = New-Object System.Drawing.Font('Microsoft YaHei UI', (FS 9))
+$script:UiFontB  = New-Object System.Drawing.Font('Microsoft YaHei UI', (FS 9), [System.Drawing.FontStyle]::Bold)
+$script:TitleFont = New-Object System.Drawing.Font('Microsoft YaHei UI', (FS 12), [System.Drawing.FontStyle]::Bold)
+$script:MonoFont = New-Object System.Drawing.Font('Consolas', (FS 10))
 
 function Get-HtmlColor([string]$hex) { return [System.Drawing.ColorTranslator]::FromHtml($hex) }
 
@@ -153,6 +161,63 @@ $script:Tools = @(
             @{ Name = 'Pad';     Label = '序号位数';    Kind = 'int';    Default = '3';  Width = 45 }
             @{ Name = 'Recurse'; Label = '含子目录';    Kind = 'switch' }
             @{ Name = 'Apply';   Label = '真正执行(默认仅预览)'; Kind = 'switch'; Danger = $true }
+        )
+    }
+    @{
+        Name = '文件哈希校验'; Script = '09-文件哈希.ps1'
+        Desc = '计算文件哈希（MD5/SHA1/SHA256/SHA512），也可按校验文件逐项比对'
+        Fields = @(
+            @{ Name = 'Path';      Label = '文件或目录'; Kind = 'folder'; Mandatory = $true; Width = 210 }
+            @{ Name = 'Algorithm'; Label = '算法';       Kind = 'choice'; Default = 'SHA256'; Width = 95; Options = @('MD5','SHA1','SHA256','SHA512') }
+            @{ Name = 'Recurse';   Label = '目录递归';   Kind = 'switch' }
+            @{ Name = 'Verify';    Label = '校验文件(可空)'; Kind = 'text'; Width = 210 }
+            @{ Name = 'Export';    Label = '导出 CSV';   Kind = 'savefile'; Width = 190 }
+        )
+    }
+    @{
+        Name = '局域网扫描'; Script = '10-局域网扫描.ps1'
+        Desc = '并发 ping 扫网段 + 读 ARP 表，列出在线主机；网段留空则自动识别本机所在 /24'
+        Fields = @(
+            @{ Name = 'Subnet';       Label = '网段(可空)'; Kind = 'text'; Default = ''; Width = 150 }
+            @{ Name = 'TimeoutMs';    Label = '超时(ms)';   Kind = 'int';  Default = '500'; Width = 60 }
+            @{ Name = 'Throttle';     Label = '并发数';     Kind = 'int';  Default = '64';  Width = 55 }
+            @{ Name = 'ResolveNames'; Label = '反查主机名'; Kind = 'switch' }
+            @{ Name = 'Export';       Label = '导出 CSV';   Kind = 'savefile'; Width = 190 }
+        )
+    }
+    @{
+        Name = '服务管理'; Script = '11-服务管理.ps1'
+        Desc = '查询筛选服务，并可启动 / 停止 / 重启 / 修改启动类型（改动操作需确认）'
+        Fields = @(
+            @{ Name = 'Filter';    Label = '关键字(可空)'; Kind = 'text';   Default = '';      Width = 140 }
+            @{ Name = 'State';     Label = '状态';         Kind = 'choice'; Default = 'All';   Width = 100; Options = @('All','Running','Stopped') }
+            @{ Name = 'StartType'; Label = '启动类型';     Kind = 'choice'; Default = 'All';   Width = 115; Options = @('All','Automatic','Manual','Disabled') }
+            @{ Name = 'Top';       Label = '显示条数';     Kind = 'int';    Default = '30';    Width = 55 }
+            @{ Name = 'Action';    Label = '操作';         Kind = 'choice'; Default = 'none';  Width = 105; Options = @('none','start','stop','restart','disable','enable','auto'); DangerValues = @('stop','restart','disable') }
+            @{ Name = 'Name';      Label = '服务名(操作时必填)'; Kind = 'text'; Default = ''; Width = 160 }
+        )
+    }
+    @{
+        Name = '环境变量'; Script = '12-环境变量.ps1'
+        Desc = '查看 / 设置 / 删除用户级与系统级环境变量，PATH 追加会自动去重并提示风险'
+        Fields = @(
+            @{ Name = 'Scope';  Label = '范围';   Kind = 'choice'; Default = 'All';  Width = 100; Options = @('All','User','Machine') }
+            @{ Name = 'Action'; Label = '动作';   Kind = 'choice'; Default = 'show'; Width = 105; Options = @('show','set','remove','append','prepend'); DangerValues = @('set','remove','append','prepend') }
+            @{ Name = 'Name';   Label = '变量名'; Kind = 'text';   Default = '';     Width = 160 }
+            @{ Name = 'Value';  Label = '变量值'; Kind = 'text';   Default = '';     Width = 220 }
+        )
+    }
+    @{
+        Name = '系统修复'; Script = '13-系统修复.ps1'
+        Desc = 'SFC / DISM / DNS 刷新 / 网络重置 / 更新缓存 / 图标缓存 —— 多数需要管理员权限'
+        Fields = @(
+            @{ Name = 'List';             Label = '只列出可做的事';   Kind = 'switch'; Default = $true }
+            @{ Name = 'FlushDns';         Label = '刷新 DNS 缓存';    Kind = 'switch' }
+            @{ Name = 'Sfc';              Label = 'SFC 扫描(5-20分钟)'; Kind = 'switch' }
+            @{ Name = 'Dism';             Label = 'DISM 修复(5-20分钟)'; Kind = 'switch' }
+            @{ Name = 'ResetNetwork';     Label = '重置网络(需重启)'; Kind = 'switch'; Danger = $true }
+            @{ Name = 'ClearUpdateCache'; Label = '清更新缓存';       Kind = 'switch'; Danger = $true }
+            @{ Name = 'RebuildIconCache'; Label = '重建图标缓存';     Kind = 'switch'; Danger = $true }
         )
     }
     @{
@@ -280,8 +345,8 @@ $script:StartTime     = Get-Date
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text            = 'Windows 常用指令集 · 图形工具台'
-$form.Size            = New-Object System.Drawing.Size(1020, 730)
-$form.MinimumSize     = New-Object System.Drawing.Size(900, 620)
+$form.Size            = New-Object System.Drawing.Size((S 1020), (S 730))
+$form.MinimumSize     = New-Object System.Drawing.Size((S 900), (S 620))
 $form.StartPosition   = 'CenterScreen'
 $form.Font            = $script:UiFont
 $form.BackColor       = (Get-HtmlColor '#1E1E1E')
@@ -294,7 +359,7 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 # ---------- 顶部标题栏 ----------
 $header = New-Object System.Windows.Forms.Panel
 $header.Dock = 'Top'
-$header.Height = 48
+$header.Height = (S 48)
 $header.BackColor = (Get-HtmlColor '#2D2D30')
 
 $title = New-Object System.Windows.Forms.Label
@@ -303,43 +368,43 @@ $title.Font = $script:TitleFont
 $title.ForeColor = (Get-HtmlColor '#FFFFFF')
 $title.AutoSize = $false
 $title.Dock = 'Left'
-$title.Width = 460
+$title.Width = (S 460)
 $title.TextAlign = 'MiddleLeft'
 $header.Controls.Add($title)
 
 $script:AdminButton = New-Object System.Windows.Forms.Button
 $script:AdminButton.Text = '以管理员身份重启'
-$script:AdminButton.Size = New-Object System.Drawing.Size(140, 30)
+$script:AdminButton.Size = New-Object System.Drawing.Size((S 140), (S 30))
 $script:AdminButton.FlatStyle = 'Flat'
 $script:AdminButton.FlatAppearance.BorderColor = (Get-HtmlColor '#3F3F46')
 $script:AdminButton.BackColor = (Get-HtmlColor '#3A3D41')
 $script:AdminButton.ForeColor = (Get-HtmlColor '#FFFFFF')
 $script:AdminButton.Anchor = 'Top,Right'
-$script:AdminButton.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 300), 9)
+$script:AdminButton.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - (S 300)), (S 9))
 $header.Controls.Add($script:AdminButton)
 
 $script:RoleLabel = New-Object System.Windows.Forms.Label
 $script:RoleLabel.Text = $(if ($isAdmin) { '管理员' } else { '普通用户' })
 $script:RoleLabel.ForeColor = $(if ($isAdmin) { Get-HtmlColor '#6FE3A0' } else { Get-HtmlColor '#DCDCAA' })
 $script:RoleLabel.AutoSize = $false
-$script:RoleLabel.Width = 140
-$script:RoleLabel.Height = 30
+$script:RoleLabel.Width = (S 140)
+$script:RoleLabel.Height = (S 30)
 $script:RoleLabel.TextAlign = 'MiddleRight'
 $script:RoleLabel.Anchor = 'Top,Right'
-$script:RoleLabel.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - 160), 9)
+$script:RoleLabel.Location = New-Object System.Drawing.Point(($form.ClientSize.Width - (S 160)), (S 9))
 $header.Controls.Add($script:RoleLabel)
 if ($isAdmin) { $script:AdminButton.Visible = $false }
 
 # ---------- 左侧工具列表 ----------
 $leftPanel = New-Object System.Windows.Forms.Panel
 $leftPanel.Dock = 'Left'
-$leftPanel.Width = 212
+$leftPanel.Width = (S 212)
 $leftPanel.BackColor = (Get-HtmlColor '#252526')
 
 $leftTitle = New-Object System.Windows.Forms.Label
 $leftTitle.Text = '  选择工具'
 $leftTitle.Dock = 'Top'
-$leftTitle.Height = 30
+$leftTitle.Height = (S 30)
 $leftTitle.TextAlign = 'MiddleLeft'
 $leftTitle.ForeColor = (Get-HtmlColor '#9A9A9A')
 $leftPanel.Controls.Add($leftTitle)
@@ -349,9 +414,9 @@ $list.Dock = 'Fill'
 $list.BorderStyle = 'None'
 $list.BackColor = (Get-HtmlColor '#252526')
 $list.ForeColor = (Get-HtmlColor '#DDDDDD')
-$list.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 10)
+$list.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', (FS 10))
 $list.DrawMode = 'OwnerDrawFixed'
-$list.ItemHeight = 30
+$list.ItemHeight = (S 30)
 $list.IntegralHeight = $false
 $leftPanel.Controls.Add($list)
 $list.BringToFront()
@@ -366,7 +431,7 @@ $list.Add_DrawItem({
     $e.Graphics.FillRectangle($bgBrush, $e.Bounds)
     $bgBrush.Dispose()
     $fgBrush = New-Object System.Drawing.SolidBrush($fg)
-    $pt = New-Object System.Drawing.PointF(($e.Bounds.X + 10), ($e.Bounds.Y + 6))
+    $pt = New-Object System.Drawing.PointF(($e.Bounds.X + (S 10)), ($e.Bounds.Y + (S 6)))
     $e.Graphics.DrawString([string]$sender.Items[$e.Index], $script:UiFont, $fgBrush, $pt)
     $fgBrush.Dispose()
 })
@@ -380,15 +445,15 @@ $rightPanel.BackColor = (Get-HtmlColor '#1E1E1E')
 
 $script:DescLabel = New-Object System.Windows.Forms.Label
 $script:DescLabel.Dock = 'Top'
-$script:DescLabel.Height = 28
+$script:DescLabel.Height = (S 28)
 $script:DescLabel.TextAlign = 'MiddleLeft'
 $script:DescLabel.ForeColor = (Get-HtmlColor '#9CDCFE')
 $script:DescLabel.BackColor = (Get-HtmlColor '#1E1E1E')
-$script:DescLabel.Padding = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
+$script:DescLabel.Padding = New-Object System.Windows.Forms.Padding((S 8), 0, 0, 0)
 
 $paramPanel = New-Object System.Windows.Forms.Panel
 $paramPanel.Dock = 'Top'
-$paramPanel.Height = 132
+$paramPanel.Height = (S 132)
 $paramPanel.BackColor = (Get-HtmlColor '#252526')
 $paramPanel.AutoScroll = $true
 $script:ParamFlow = New-Object System.Windows.Forms.FlowLayoutPanel
@@ -396,31 +461,31 @@ $script:ParamFlow.Dock = 'Fill'
 $script:ParamFlow.FlowDirection = 'LeftToRight'
 $script:ParamFlow.WrapContents = $true
 $script:ParamFlow.AutoScroll = $true
-$script:ParamFlow.Padding = New-Object System.Windows.Forms.Padding(8, 6, 8, 6)
+$script:ParamFlow.Padding = New-Object System.Windows.Forms.Padding((S 8), (S 6), (S 8), (S 6))
 $script:ParamFlow.BackColor = (Get-HtmlColor '#252526')
 $paramPanel.Controls.Add($script:ParamFlow)
 
 $actionPanel = New-Object System.Windows.Forms.Panel
 $actionPanel.Dock = 'Top'
-$actionPanel.Height = 46
+$actionPanel.Height = (S 46)
 $actionPanel.BackColor = (Get-HtmlColor '#1E1E1E')
 $actionFlow = New-Object System.Windows.Forms.FlowLayoutPanel
 $actionFlow.Dock = 'Fill'
 $actionFlow.FlowDirection = 'LeftToRight'
 $actionFlow.WrapContents = $false
-$actionFlow.Padding = New-Object System.Windows.Forms.Padding(8, 8, 8, 8)
+$actionFlow.Padding = New-Object System.Windows.Forms.Padding((S 8), (S 8), (S 8), (S 8))
 $actionFlow.BackColor = (Get-HtmlColor '#1E1E1E')
 $actionPanel.Controls.Add($actionFlow)
 
 function New-ActionButton([string]$Text, [int]$Width, [string]$Back = '#0E639C') {
     $b = New-Object System.Windows.Forms.Button
     $b.Text = $Text
-    $b.Size = New-Object System.Drawing.Size($Width, 28)
+    $b.Size = New-Object System.Drawing.Size((S $Width), (S 28))
     $b.FlatStyle = 'Flat'
     $b.BackColor = (Get-HtmlColor $Back)
     $b.ForeColor = (Get-HtmlColor '#FFFFFF')
     $b.FlatAppearance.BorderColor = (Get-HtmlColor '#3F3F46')
-    $b.Margin = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
+    $b.Margin = New-Object System.Windows.Forms.Padding(0, 0, (S 6), 0)
     return $b
 }
 
@@ -453,6 +518,7 @@ $statusStrip = New-Object System.Windows.Forms.StatusStrip
 $statusStrip.BackColor = (Get-HtmlColor '#007ACC')
 $statusStrip.ForeColor = (Get-HtmlColor '#FFFFFF')
 $statusStrip.SizingGrip = $false
+$statusStrip.Font = $script:UiFont
 $script:StatusLabel = New-Object System.Windows.Forms.ToolStripStatusLabel
 $script:StatusLabel.Text = ' 就绪'
 $script:StatusLabel.Spring = $true
@@ -462,7 +528,7 @@ $script:Progress = New-Object System.Windows.Forms.ToolStripProgressBar
 $script:Progress.Style = 'Marquee'
 $script:Progress.MarqueeAnimationSpeed = 30
 $script:Progress.Visible = $false
-$script:Progress.Width = 120
+$script:Progress.Width = (S 120)
 $statusStrip.Items.Add($script:Progress) | Out-Null
 
 # 注意：Dock 的布局优先级与添加顺序相反（后添加的优先占位）
@@ -571,6 +637,15 @@ function Start-ToolRun {
                 if ($txt -match '^-?\d+$') { $argTable[$f.Name] = [int]$txt }
                 elseif ($f.Mandatory) { $missing += $f.Label }
             }
+            'choice' {
+                $val = [string]$ctl.SelectedItem
+                if (-not $val) { $val = $ctl.Text.Trim() }
+                if ($val) { $argTable[$f.Name] = $val }
+                elseif ($f.Mandatory) { $missing += $f.Label }
+                if ($val -and $f.DangerValues -and ($f.DangerValues -contains $val)) {
+                    $danger += ('{0} = {1}' -f $f.Label, $val)
+                }
+            }
             'list' {
                 $txt = $ctl.Text.Trim()
                 if ($txt) {
@@ -633,33 +708,52 @@ function Start-ToolRun {
 function New-FieldPanel($field) {
     $panel = New-Object System.Windows.Forms.Panel
     $panel.AutoSize = $true
-    $panel.Margin = New-Object System.Windows.Forms.Padding(0, 4, 16, 4)
+    $panel.Margin = New-Object System.Windows.Forms.Padding(0, (S 4), (S 16), (S 4))
 
     $lab = New-Object System.Windows.Forms.Label
     $lab.Text = [string]$field.Label
     $lab.AutoSize = $false
-    $lab.Size = New-Object System.Drawing.Size(($lab.Text.Length * 13 + 16), 24)
+    $lab.Size = New-Object System.Drawing.Size(($lab.Text.Length * (S 13) + (S 16)), (S 24))
     $lab.TextAlign = 'MiddleLeft'
     $lab.ForeColor = (Get-HtmlColor '#C8C8C8')
-    $lab.Location = New-Object System.Drawing.Point(0, 2)
+    $lab.Location = New-Object System.Drawing.Point(0, (S 2))
     $panel.Controls.Add($lab)
 
-    $x = $lab.Width + 2
+    $x = $lab.Width + (S 2)
 
     if ($field.Kind -eq 'switch') {
         $cb = New-Object System.Windows.Forms.CheckBox
         $cb.Text = ''
-        $cb.Size = New-Object System.Drawing.Size(20, 22)
-        $cb.Location = New-Object System.Drawing.Point($x, 3)
+        $cb.Size = New-Object System.Drawing.Size((S 20), (S 22))
+        $cb.Location = New-Object System.Drawing.Point($x, (S 3))
         $cb.ForeColor = (Get-HtmlColor '#D4D4D4')
         if ($field.Default) { $cb.Checked = $true }
         $panel.Controls.Add($cb)
-        $panel.Size = New-Object System.Drawing.Size(($x + 24), 28)
+        $panel.Size = New-Object System.Drawing.Size(($x + (S 24)), (S 28))
         $script:FieldControls[$field.Name] = $cb
         if ($field.Danger) {
             $lab.ForeColor = (Get-HtmlColor '#F48771')
-            $panel.Size = New-Object System.Drawing.Size(($x + 24), 28)
+            $panel.Size = New-Object System.Drawing.Size(($x + (S 24)), (S 28))
         }
+        return $panel
+    }
+
+    if ($field.Kind -eq 'choice') {
+        $w = 140
+        if ($field.Width) { $w = [int]$field.Width }
+        $cbo = New-Object System.Windows.Forms.ComboBox
+        $cbo.DropDownStyle = 'DropDownList'
+        $cbo.FlatStyle = 'Flat'
+        $cbo.Size = New-Object System.Drawing.Size($w, (S 24))
+        $cbo.Location = New-Object System.Drawing.Point($x, (S 2))
+        $cbo.BackColor = (Get-HtmlColor '#333337')
+        $cbo.ForeColor = (Get-HtmlColor '#FFFFFF')
+        foreach ($opt in $field.Options) { [void]$cbo.Items.Add([string]$opt) }
+        if ($field.Default -and $cbo.Items.Contains([string]$field.Default)) { $cbo.SelectedItem = [string]$field.Default }
+        elseif ($cbo.Items.Count -gt 0) { $cbo.SelectedIndex = 0 }
+        $panel.Controls.Add($cbo)
+        $script:FieldControls[$field.Name] = $cbo
+        $panel.Size = New-Object System.Drawing.Size(($x + $w), (S 28))
         return $panel
     }
 
@@ -667,8 +761,8 @@ function New-FieldPanel($field) {
     if ($field.Width) { $w = [int]$field.Width }
 
     $tb = New-Object System.Windows.Forms.TextBox
-    $tb.Size = New-Object System.Drawing.Size($w, 24)
-    $tb.Location = New-Object System.Drawing.Point($x, 2)
+    $tb.Size = New-Object System.Drawing.Size($w, (S 24))
+    $tb.Location = New-Object System.Drawing.Point($x, (S 2))
     $tb.BackColor = (Get-HtmlColor '#333337')
     $tb.ForeColor = (Get-HtmlColor '#FFFFFF')
     $tb.BorderStyle = 'FixedSingle'
@@ -682,8 +776,8 @@ function New-FieldPanel($field) {
     if ($field.Kind -eq 'folder' -or $field.Kind -eq 'savefile') {
         $btn = New-Object System.Windows.Forms.Button
         $btn.Text = '...'
-        $btn.Size = New-Object System.Drawing.Size(30, 24)
-        $btn.Location = New-Object System.Drawing.Point(($x + $w + 4), 2)
+        $btn.Size = New-Object System.Drawing.Size((S 30), (S 24))
+        $btn.Location = New-Object System.Drawing.Point(($x + $w + (S 4)), (S 2))
         $btn.FlatStyle = 'Flat'
         $btn.BackColor = (Get-HtmlColor '#3A3D41')
         $btn.ForeColor = (Get-HtmlColor '#FFFFFF')
@@ -710,10 +804,10 @@ function New-FieldPanel($field) {
             }
         })
         $panel.Controls.Add($btn)
-        $totalW = $x + $w + 36
+        $totalW = $x + $w + (S 36)
     }
 
-    $panel.Size = New-Object System.Drawing.Size($totalW, 28)
+    $panel.Size = New-Object System.Drawing.Size($totalW, (S 28))
     return $panel
 }
 
@@ -749,7 +843,7 @@ function Show-ToolPanel([int]$Index) {
         )
         foreach ($p in $panels) {
             $b = New-ActionButton $p.Text 104 '#3A3D41'
-            $b.Margin = New-Object System.Windows.Forms.Padding(0, 4, 8, 4)
+            $b.Margin = New-Object System.Windows.Forms.Padding(0, (S 4), (S 8), (S 4))
             # 目标存进控件 Tag，事件里用 $sender.Tag 取；不要引用循环变量 $t（函数返回后即失效）
             $b.Tag = $p.Target
             $b.Add_Click({
@@ -846,8 +940,8 @@ $form.Add_FormClosing({
 })
 $form.Add_Resize({
     $w = $script:Form.ClientSize.Width
-    $script:AdminButton.Location = New-Object System.Drawing.Point(($w - 300), 9)
-    $script:RoleLabel.Location    = New-Object System.Drawing.Point(($w - 160), 9)
+    $script:AdminButton.Location = New-Object System.Drawing.Point(($w - (S 300)), (S 9))
+    $script:RoleLabel.Location    = New-Object System.Drawing.Point(($w - (S 160)), (S 9))
 })
 
 # ============================================================

@@ -55,6 +55,13 @@ jobs:
         shell: powershell
         run: ./build/build-exe.ps1
 
+      - name: Build MSI installer
+        shell: powershell
+        run: |
+          $v = '1.1.0'
+          if ($env:GITHUB_REF -like 'refs/tags/v*') { $v = $env:GITHUB_REF -replace '^refs/tags/v','' }
+          Write-Host ("version: " + $v)
+          ./build/build-msi.ps1 -Version $v
       - name: GUI handler regression test
         shell: powershell
         run: ./build/test-gui-handlers.ps1 -SkipLaunch
@@ -65,8 +72,14 @@ jobs:
           $exe = Get-ChildItem -File -Filter *.exe | Select-Object -First 1
           Write-Host ("built: " + $exe.Name + "  " + $exe.Length + " bytes")
           Copy-Item $exe.FullName 'win-toolkit.exe' -Force
+          $msi = Get-ChildItem -File -Filter *.msi | Select-Object -First 1
+          if ($msi) { Copy-Item $msi.FullName 'win-toolkit.msi' -Force }
           $hash = (Get-FileHash 'win-toolkit.exe' -Algorithm SHA256).Hash
           "$hash  win-toolkit.exe" | Set-Content -Path 'SHA256SUMS.txt' -Encoding ascii
+          if (Test-Path 'win-toolkit.msi') {
+            $h2 = (Get-FileHash 'win-toolkit.msi' -Algorithm SHA256).Hash
+            "$h2  win-toolkit.msi" | Add-Content -Path 'SHA256SUMS.txt' -Encoding ascii
+          }
           Write-Host ("SHA256: " + $hash)
 
       - name: Upload artifact
@@ -75,6 +88,7 @@ jobs:
           name: win-toolkit-exe
           path: |
             win-toolkit.exe
+            win-toolkit.msi
             SHA256SUMS.txt
 
       - name: Publish release (tags only)
@@ -83,6 +97,7 @@ jobs:
         with:
           files: |
             win-toolkit.exe
+            win-toolkit.msi
             SHA256SUMS.txt
           generate_release_notes: true
           body: |

@@ -1,4 +1,4 @@
-﻿# Windows 常用指令集
+﻿ Windows 常用指令集
 
 [![构建 EXE](https://github.com/112-a-eng/win-toolkit/actions/workflows/build-exe.yml/badge.svg)](https://github.com/112-a-eng/win-toolkit/actions/workflows/build-exe.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -602,6 +602,11 @@ PS> $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 | `06-进程服务速查.ps1` | 占资源 Top 进程、异常服务、启动项 |
 | `07-大文件查找.ps1` | 按大小/时间找大文件，导出 CSV |
 | `08-批量重命名.ps1` | 批量加前缀/后缀/替换/序号，默认预览模式 |
+| `09-文件哈希.ps1` | 算 / 验文件哈希（MD5/SHA1/SHA256/SHA512），支持按校验文件逐项比对 |
+| `10-局域网扫描.ps1` | 并发 ping 扫网段 + 读 ARP 表，列出在线主机（留空自动识别本机 /24） |
+| `11-服务管理.ps1` | 查询筛选服务，可启动 / 停止 / 重启 / 修改启动类型（含关键服务禁用风险提示） |
+| `12-环境变量.ps1` | 查看 / 设置 / 删除用户级与系统级环境变量，PATH 追加自动去重 |
+| `13-系统修复.ps1` | SFC / DISM / DNS 刷新 / 网络重置 / 更新缓存 / 图标缓存（含耗时与风险清单） |
 
 ### 图形界面版（不想敲命令就用这个）
 
@@ -612,9 +617,26 @@ PS> $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 | `图形工具台.ps1` | 图形界面本体：纯 PowerShell + WinForms，零依赖 |
 | `build\build-exe.ps1` | 改完脚本后重新打包 EXE（依赖系统自带 csc.exe，无需装任何工具） |
 | `build\test-gui-handlers.ps1` | 界面事件回归测试：验证按钮事件能正确拿到目标，防「系统找不到指定的文件」那类坑 |
+| `build\build-msi.ps1` | 打包 MSI 安装包（WiX v3，按用户安装、免管理员、中文向导） |
+| `Windows常用指令集-1.1.0.msi` | **安装包成品**：装到 `%LOCALAPPDATA%\Programs\Windows常用指令集`，带开始菜单 + 桌面快捷方式 |
 | `build\capture-screenshot.ps1` | 自动开窗 + 点「运行」+ 抓图，重新生成下面的截图 |
 
 **EXE 的两种工作方式**
+
+**MSI 安装包（可选）**
+
+`powershell
+# 直接双击 Windows常用指令集-1.1.0.msi 即可；也可以命令行静默安装/卸载
+msiexec /i "Windows常用指令集-1.1.0.msi" /qn      # 静默安装（按用户，无需管理员）
+msiexec /x "{ProductCode}" /qn                    # 卸载
+`
+
+- 按用户安装，**不需要管理员权限**；装完出现在「设置 → 应用」里可正常卸载
+- 安装位置：%LOCALAPPDATA%\Programs\Windows常用指令集，含 scripts\、docs\、uild\
+- 重新打包：.\build\build-msi.ps1（首次会自动下载 WiX 到 %LOCALAPPDATA%\WinToolkitBuild\wix）
+- 实测记录：安装 → 29 个文件 + 开始菜单/桌面快捷方式 + 卸载项注册 → 真实启动图形界面 → 卸载 → 目录与快捷方式全部清理
+
+
 
 - **便携模式**：EXE 旁边就有 `图形工具台.ps1` 时，直接用旁边这份脚本 —— 你改了脚本，重开 EXE 立刻生效，不必重新打包。
 - **独立模式**：只把 EXE 单独拷到别处（U 盘 / 桌面 / 别的电脑）时，它会自动把内嵌的 13 个文件解包到
@@ -626,6 +648,7 @@ PS> $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 - 任务放在独立 Runspace 里跑，界面不会卡死；输出实时彩色回显，可一键复制或保存成 txt
 - 危险操作（结束进程 / 清空回收站 / 镜像同步 / 真正改名）运行前弹窗二次确认
 - 非管理员启动时，右上角提供「以管理员身份重启」
+- 觉得字小可以加缩放：`.\图形工具台.ps1 -UiScale 1.5`（默认 1.3，布局结构不变、只等比放大）
 - 界面自检（不开窗口）：`powershell -ExecutionPolicy Bypass -File .\图形工具台.ps1 -SelfTest`
 
 ### 命令行用法示例

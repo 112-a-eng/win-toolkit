@@ -1,8 +1,8 @@
-﻿// ============================================================================
+﻿/// ============================================================================
 //  Windows 常用指令集 · 图形工具台 —— EXE 启动器
 //  作用：把全部 PowerShell 脚本作为资源嵌进单文件 EXE，运行时解包到本地目录，
 //        再用 powershell.exe 以 STA + Bypass 策略启动图形界面。
-//        这样用户只需要一个 exe，不需要关心脚本文件、执行策略、编码等问题。
+//        这样用户只需要一个 exe，不需要关心脚本文件、执行策略、编码等问题。（当前内嵌 18 个文件）
 //  编译：见同目录 build-exe.ps1（使用系统自带 csc.exe，无需安装任何工具）
 // ============================================================================
 using System;
@@ -32,6 +32,11 @@ namespace WinCommandToolkit
             new string[] { "s06.ps1",      @"scripts\06-进程服务速查.ps1" },
             new string[] { "s07.ps1",      @"scripts\07-大文件查找.ps1" },
             new string[] { "s08.ps1",      @"scripts\08-批量重命名.ps1" },
+            new string[] { "s09.ps1",      @"scripts\09-文件哈希.ps1" },
+            new string[] { "s10.ps1",      @"scripts\10-局域网扫描.ps1" },
+            new string[] { "s11.ps1",      @"scripts\11-服务管理.ps1" },
+            new string[] { "s12.ps1",      @"scripts\12-环境变量.ps1" },
+            new string[] { "s13.ps1",      @"scripts\13-系统修复.ps1" },
             new string[] { "menu.ps1",     @"scripts\menu.ps1" },
             new string[] { "run.bat",      @"scripts\run.bat" },
             new string[] { "launcher.bat", "启动图形工具台.bat" },

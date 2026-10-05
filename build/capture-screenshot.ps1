@@ -21,6 +21,7 @@ param(
     [string]$OutPath,
     [int]$WaitSeconds = 15,
     [int]$OutputWaitSeconds = 8,
+    [int]$ToolIndex = -1,
     [switch]$NoClickRun
 )
 
@@ -43,6 +44,8 @@ Add-Type -Namespace Shot -Name Native -MemberDefinition @'
 [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
 [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowTextW(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr SendMessageW(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassNameW(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+[DllImport("user32.dll")] public static extern int GetDlgCtrlID(IntPtr hWnd);
 public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
 '@
@@ -82,6 +85,29 @@ Write-Host ("   窗口句柄: {0}" -f $hwnd)
 [void][Shot.Native]::ShowWindow($hwnd, $SW_RESTORE)
 [void][Shot.Native]::SetForegroundWindow($hwnd)
 Start-Sleep -Seconds 2
+
+# ---------- 需要时先切换到指定工具（选中左侧列表第 N 项）----------
+if ($ToolIndex -ge 0) {
+    Write-Host ("3) 切换到工具 #{0}…" -f $ToolIndex)
+    $script:foundList = [IntPtr]::Zero
+    $cbList = [Shot.Native+EnumWindowsProc]{
+        param($h, $l)
+        $sbCls = New-Object System.Text.StringBuilder 256
+        [void][Shot.Native]::GetClassNameW($h, $sbCls, 256)
+        if ($sbCls.ToString() -like '*LISTBOX*') { $script:foundList = $h; return $false }
+        return $true
+    }
+    [void][Shot.Native]::EnumChildWindows($hwnd, $cbList, [IntPtr]::Zero)
+    if ($script:foundList -ne [IntPtr]::Zero) {
+        [void][Shot.Native]::SendMessageW($script:foundList, 0x0186, [IntPtr]$ToolIndex, [IntPtr]::Zero)  # LB_SETCURSEL
+        $ctrlId = [Shot.Native]::GetDlgCtrlID($script:foundList)
+        $wparam = [IntPtr]((1 -shl 16) -bor ($ctrlId -band 0xFFFF))                                       # LBN_SELCHANGE
+        [void][Shot.Native]::SendMessageW($hwnd, 0x0111, $wparam, $script:foundList)                      # WM_COMMAND
+        Start-Sleep -Seconds 2
+    } else {
+        Write-Host '   没找到列表控件，跳过切换' -ForegroundColor Yellow
+    }
+}
 
 # ---------- 自动点“运行”，让输出区有内容 ----------
 if (-not $NoClickRun) {

@@ -611,6 +611,8 @@ PS> $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 | `启动图形工具台.bat` | 备用入口：直接用同目录脚本启动图形界面 |
 | `图形工具台.ps1` | 图形界面本体：纯 PowerShell + WinForms，零依赖 |
 | `build\build-exe.ps1` | 改完脚本后重新打包 EXE（依赖系统自带 csc.exe，无需装任何工具） |
+| `build\test-gui-handlers.ps1` | 界面事件回归测试：验证按钮事件能正确拿到目标，防「系统找不到指定的文件」那类坑 |
+| `build\capture-screenshot.ps1` | 自动开窗 + 点「运行」+ 抓图，重新生成下面的截图 |
 
 **EXE 的两种工作方式**
 

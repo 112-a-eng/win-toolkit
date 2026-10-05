@@ -55,6 +55,10 @@ jobs:
         shell: powershell
         run: ./build/build-exe.ps1
 
+      - name: GUI handler regression test
+        shell: powershell
+        run: ./build/test-gui-handlers.ps1 -SkipLaunch
+
       - name: Make ASCII-named copy and checksum
         shell: powershell
         run: |

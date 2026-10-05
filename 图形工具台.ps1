@@ -688,9 +688,14 @@ function New-FieldPanel($field) {
         $btn.BackColor = (Get-HtmlColor '#3A3D41')
         $btn.ForeColor = (Get-HtmlColor '#FFFFFF')
         $btn.FlatAppearance.BorderColor = (Get-HtmlColor '#3F3F46')
-        $kind = $field.Kind
-        $target = $tb
+        # 目标输入框与类型存进控件自己的 Tag，事件里用 $sender 取。
+        # 注意：不能直接引用 $target/$kind 这类局部变量 —— 本函数返回后它们就没了，
+        # 事件触发时会变成 $null，Start-Process/ShowDialog 就会报“系统找不到指定的文件”。
+        $btn.Tag = @{ Kind = $field.Kind; Box = $tb }
         $btn.Add_Click({
+            param($sender, $e)
+            $kind   = $sender.Tag.Kind
+            $target = $sender.Tag.Box
             if ($kind -eq 'folder') {
                 $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
                 $dlg.Description = '选择目录'
@@ -745,8 +750,13 @@ function Show-ToolPanel([int]$Index) {
         foreach ($p in $panels) {
             $b = New-ActionButton $p.Text 104 '#3A3D41'
             $b.Margin = New-Object System.Windows.Forms.Padding(0, 4, 8, 4)
-            $t = $p.Target
-            $b.Add_Click({ try { Start-Process $t } catch { [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, '打开失败') | Out-Null } })
+            # 目标存进控件 Tag，事件里用 $sender.Tag 取；不要引用循环变量 $t（函数返回后即失效）
+            $b.Tag = $p.Target
+            $b.Add_Click({
+                param($sender, $e)
+                try { Start-Process $sender.Tag }
+                catch { [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, '打开失败') | Out-Null }
+            })
             $script:ParamFlow.Controls.Add($b)
         }
         return

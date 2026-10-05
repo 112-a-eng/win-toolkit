@@ -1,16 +1,16 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+﻿ yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 # NOTE: metadata is kept ASCII-only on purpose -- some winget builds mis-detect the
 #       encoding of non-ASCII YAML and fail with a YAML scanner error.
 PackageIdentifier: 112-a-eng.WinToolkit
-PackageVersion: 1.1.0
+PackageVersion: 1.1.1
 InstallerType: portable
 Commands:
   - win-toolkit
 ReleaseDate: 2026-10-05
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/112-a-eng/win-toolkit/releases/download/v1.1.0/win-toolkit.exe
-    InstallerSha256: 5F39B40D44B87ED0E6429560ED6F552E203FE5EEB9F73CDBC1D29CD046504C2F
+    InstallerUrl: https://github.com/112-a-eng/win-toolkit/releases/download/v1.1.1/win-toolkit.exe
+    InstallerSha256: 6612CF482D7CA05567EF07AB5EFA1598E9494F8F7BE05790C0186A7BB2BF2280
     InstallerLocale: zh-CN
 ManifestType: installer
 ManifestVersion: 1.6.0

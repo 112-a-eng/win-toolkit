@@ -41,7 +41,9 @@ if (-not $SelfTest -and [System.Threading.Thread]::CurrentThread.GetApartmentSta
 $script:AppRoot    = $PSScriptRoot
 $script:ScriptDir  = Join-Path $PSScriptRoot 'scripts'
 if (-not (Test-Path -LiteralPath $script:ScriptDir)) { $script:ScriptDir = $PSScriptRoot }
-$script:ReadmePath = Join-Path $PSScriptRoot 'README.md'
+# 「打开速查手册」优先打开命令速查正文（19 章）；老版本没有该文件时退回 README
+$script:ReadmePath = Join-Path $PSScriptRoot 'docs\命令速查.md'
+if (-not (Test-Path -LiteralPath $script:ReadmePath)) { $script:ReadmePath = Join-Path $PSScriptRoot 'README.md' }
 [Environment]::CurrentDirectory = $script:AppRoot
 
 # ============================================================

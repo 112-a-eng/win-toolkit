@@ -40,6 +40,7 @@ namespace WinCommandToolkit
             new string[] { "menu.ps1",     @"scripts\menu.ps1" },
             new string[] { "run.bat",      @"scripts\run.bat" },
             new string[] { "launcher.bat", "启动图形工具台.bat" },
+            new string[] { "cheatsheet.md", @"docs\命令速查.md" },
             new string[] { "readme.md",    "README.md" }
         };
 

@@ -50,6 +50,7 @@ $map = [ordered]@{
     'menu.ps1'     = (Join-Path $root 'scripts\menu.ps1')
     'run.bat'      = (Join-Path $root 'scripts\run.bat')
     'launcher.bat' = (Join-Path $root '启动图形工具台.bat')
+    'cheatsheet.md' = (Join-Path $root 'docs\命令速查.md')
     'readme.md'    = (Join-Path $root 'README.md')
 }
 Remove-Item $payload -Recurse -Force -ErrorAction SilentlyContinue

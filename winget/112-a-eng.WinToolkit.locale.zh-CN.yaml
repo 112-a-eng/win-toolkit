@@ -1,4 +1,4 @@
-﻿ yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 # NOTE: metadata is kept ASCII-only on purpose -- some winget builds mis-detect the
 #       encoding of non-ASCII YAML and fail with a YAML scanner error.
 PackageIdentifier: 112-a-eng.WinToolkit

@@ -10,7 +10,7 @@ ReleaseDate: 2026-10-05
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/112-a-eng/win-toolkit/releases/download/v1.0.0/win-toolkit.exe
-    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+    InstallerSha256: 
     InstallerLocale: zh-CN
 ManifestType: installer
 ManifestVersion: 1.6.0

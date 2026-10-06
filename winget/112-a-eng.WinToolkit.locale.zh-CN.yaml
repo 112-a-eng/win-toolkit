@@ -1,8 +1,8 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+#yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 # NOTE: metadata is kept ASCII-only on purpose -- some winget builds mis-detect the
 #       encoding of non-ASCII YAML and fail with a YAML scanner error.
 PackageIdentifier: 112-a-eng.WinToolkit
-PackageVersion: 1.1.1
+PackageVersion: 1.1.2
 PackageLocale: zh-CN
 Publisher: 112-a-eng
 PublisherUrl: https://github.com/112-a-eng
@@ -24,6 +24,6 @@ Tags:
   - winforms
   - sysadmin
   - utilities
-ReleaseNotesUrl: https://github.com/112-a-eng/win-toolkit/releases/tag/v1.1.1
+ReleaseNotesUrl: https://github.com/112-a-eng/win-toolkit/releases/tag/v1.1.2
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

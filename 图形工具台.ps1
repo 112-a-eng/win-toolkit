@@ -113,7 +113,7 @@ $script:Tools = @(
         Name = '临时文件清理'; Script = '04-清理临时文件.ps1'
         Desc = '清理用户/系统临时目录与各类缓存，建议先用「仅预览」看一眼'
         Fields = @(
-            @{ Name = 'DryRun';             Label = '仅预览不删除';        Kind = 'switch'; Default = $true }
+            @{ Name = 'DryRun';             Label = '仅预览不删除';        Kind = 'switch'; Default = $true; DangerWhenUnchecked = $true }
             @{ Name = 'IncludeCrashDumps';  Label = '含崩溃转储/缩略图缓存'; Kind = 'switch' }
             @{ Name = 'IncludeRecycleBin';  Label = '清空回收站(不可恢复)';  Kind = 'switch'; Danger = $true }
             @{ Name = 'IncludeUpdateCache'; Label = '含更新缓存(需管理员)';  Kind = 'switch'; Danger = $true }
@@ -622,6 +622,11 @@ function Start-ToolRun {
         return
     }
 
+    # 脚本若声明了 -Yes，就总是传 -Yes：确认环节由界面负责。
+    # 否则脚本会在无交互的 Runspace 里调用 Read-Host，报「主机不支持用户交互」。
+    $supportsYes = $false
+    try { if ([System.IO.File]::ReadAllText($scriptPath) -match '\[switch\]\s*\$Yes\b') { $supportsYes = $true } } catch { }
+
     # 收集参数
     $argTable = @{}
     $missing  = @()
@@ -633,6 +638,8 @@ function Start-ToolRun {
             'switch' {
                 if ($ctl.Checked) { $argTable[$f.Name] = $true }
                 if ($ctl.Checked -and $f.Danger) { $danger += $f.Label }
+                # 「勾选才安全」的开关（如清理脚本的 -DryRun）：取消勾选=真正执行，同样要确认
+                if (-not $ctl.Checked -and $f.DangerWhenUnchecked) { $danger += ($f.Label + '（已取消勾选 → 会真正执行）') }
             }
             'int' {
                 $txt = $ctl.Text.Trim()
@@ -671,8 +678,9 @@ function Start-ToolRun {
         $msg = "以下操作具有破坏性或不可恢复，确认继续？`r`n`r`n  - " + ($danger -join "`r`n  - ") + "`r`n`r`n（对应脚本会跳过二次询问）"
         $r = [System.Windows.Forms.MessageBox]::Show($msg, '危险操作确认', 'YesNo', 'Warning')
         if ($r -ne 'Yes') { return }
-        $argTable['Yes'] = $true      # 让脚本跳过控制台交互确认
     }
+    if ($supportsYes) { $argTable['Yes'] = $true }   # 界面确认已做过，让脚本别再问
+
 
     # 启动
     Clear-Output

@@ -1,4 +1,4 @@
-﻿# Windows 常用指令集
+﻿#Windows 常用指令集
 
 [![构建 EXE](https://github.com/112-a-eng/win-toolkit/actions/workflows/build-exe.yml/badge.svg)](https://github.com/112-a-eng/win-toolkit/actions/workflows/build-exe.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -69,7 +69,10 @@
 .\build\build-msi.ps1              # 打包 MSI（WiX v3，首次运行自动下载工具链）
 .\build\test-gui-handlers.ps1      # 界面事件回归测试（防按钮点了报「找不到指定的文件」）
 .\build\capture-screenshot.ps1     # 自动开窗 + 点运行 + 抓图，重新生成上面的截图
+.\build\test-all.ps1               # 全量自测：13 个脚本 + 界面 + EXE + MSI 一次跑完（42 项）
 ```
+
+> 全量自测的最新结果放在 [docs/测试报告.md](docs/测试报告.md)，一条命令即可复现：.\build\test-all.ps1。
 
 CI（`.github/workflows/build-exe.yml`）在 push / PR 时编译 EXE + MSI 并跑回归测试；
 **推送 `v*` tag 会自动把 `win-toolkit.exe`、`win-toolkit.msi`、`SHA256SUMS.txt` 发布到 Release**。
